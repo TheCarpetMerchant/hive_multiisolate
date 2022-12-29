@@ -12,6 +12,8 @@ class HiveMultiIsolateBox<T> {
   late Box<T> _box;
   Completer<void>? _initCompleter;
 
+  bool get isOpenedSync => _initCompleter?.isCompleted ?? false;
+
   Future<String?> get path async {
     var box = await _getBox();
     String? path = box.path;
@@ -23,7 +25,7 @@ class HiveMultiIsolateBox<T> {
     if(!isMultiIsolate) {
 
       // If the completer is complete, that means the box has been opened
-      if(_initCompleter?.isCompleted ?? false) return _box;
+      if(isOpenedSync) return _box;
 
       // If the completer exists but isn't completed, the box is being opened ; wait for that.
       if(_initCompleter != null) {
@@ -55,6 +57,12 @@ class HiveMultiIsolateBox<T> {
     if(isMultiIsolate) await box.close();
   }
 
+  Future<void> putAll(Map<String, T> entries) async {
+    final Box<T> box = await _getBox();
+    await box.putAll(entries);
+    if(isMultiIsolate) await box.close();
+  }
+
   Future<T?> get(String key) async {
     final Box<T> box = await _getBox();
     T? value = box.get(key);
@@ -63,7 +71,7 @@ class HiveMultiIsolateBox<T> {
   }
 
   T? getSync(String key) {
-    if(!isMultiIsolate) throw Exception('Cannot use getSync on a multiIsolate box');
+    if(isMultiIsolate) throw Exception('Cannot use getSync on a multiIsolate box');
     return _box.get(key);
   }
 
@@ -82,7 +90,7 @@ class HiveMultiIsolateBox<T> {
   }
 
   Iterable<T> getAllSync() {
-    if(!isMultiIsolate) throw Exception('Cannot use getSync on a multiIsolate box');
+    if(isMultiIsolate) throw Exception('Cannot use getAllSync on a multiIsolate box');
     return _box.values;
   }
 
@@ -150,5 +158,10 @@ class HiveMultiIsolateBox<T> {
 
     // Will allow the reopening of the box
     _initCompleter = null;
+  }
+
+  /// Used to open the box and then use Sync methods.
+  Future<void> open() async {
+    await _getBox();
   }
 }

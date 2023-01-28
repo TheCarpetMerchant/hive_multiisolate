@@ -5,11 +5,12 @@ import 'package:hive/hive.dart';
 
 class HiveMultiIsolateBox<T> {
 
-  HiveMultiIsolateBox(this.boxName, {this.isMultiIsolate = false});
+  HiveMultiIsolateBox(this.boxName, {this.isMultiIsolate = false, this.lazy = false});
 
   final String boxName;
   final bool isMultiIsolate;
-  late Box<T> _box;
+  final bool lazy;
+  late BoxBase<T> _box;
   Completer<void>? _initCompleter;
 
   bool get isOpenedSync => _initCompleter?.isCompleted ?? false;
@@ -21,7 +22,7 @@ class HiveMultiIsolateBox<T> {
     return path;
   }
 
-  Future<Box<T>> _getBox() async {
+  Future<BoxBase<T>> _getBox() async {
     if(!isMultiIsolate) {
 
       // If the completer is complete, that means the box has been opened
@@ -35,7 +36,11 @@ class HiveMultiIsolateBox<T> {
 
       // Create the completer and complete it when the box is opened.
       _initCompleter = Completer();
-      _box = await Hive.openBox<T>(boxName);
+      if(lazy) {
+        _box = await Hive.openLazyBox<T>(boxName);
+      } else {
+        _box = await Hive.openBox<T>(boxName);
+      }
       _initCompleter!.complete();
 
       return _box;
@@ -44,7 +49,11 @@ class HiveMultiIsolateBox<T> {
     // Try to open the box as many times as it takes, in case it's opened in another Isolate
     while(true) {
       try {
-        return await Hive.openBox<T>(boxName);
+        if(lazy) {
+          return await Hive.openLazyBox<T>(boxName);
+        } else {
+          return await Hive.openBox<T>(boxName);
+        }
       } catch(e) {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
@@ -52,74 +61,77 @@ class HiveMultiIsolateBox<T> {
   }
 
   Future<void> put(String key, T value) async {
-    final Box<T> box = await _getBox();
+    final box = await _getBox();
     await box.put(key, value);
     if(isMultiIsolate) await box.close();
   }
 
   Future<void> putAll(Map<String, T> entries) async {
-    final Box<T> box = await _getBox();
+    final box = await _getBox();
     await box.putAll(entries);
     if(isMultiIsolate) await box.close();
   }
 
   Future<T?> get(String key) async {
-    final Box<T> box = await _getBox();
-    T? value = box.get(key);
+    final box = await _getBox();
+    T? value = lazy ? await (box as LazyBox<T>).get(key) : (box as Box<T>).get(key);
     if(isMultiIsolate) await box.close();
     return value;
   }
 
   T? getSync(String key) {
-    if(isMultiIsolate) throw Exception('Cannot use getSync on a multiIsolate box');
-    return _box.get(key);
+    if(isMultiIsolate) throw UnimplementedError('Cannot use getSync on a multiIsolate box');
+    if(lazy) throw UnimplementedError('Cannot use getSync on a lazy box');
+    return (_box as Box<T>).get(key);
   }
 
   Future<List<T>> getAll() async {
-    final Box<T> box = await _getBox();
+    if(lazy) throw UnimplementedError('Cannot use getAll on a lazy box');
+    final box = await _getBox() as Box<T>;
     List<T> values = box.values.toList();
     if(isMultiIsolate) await box.close();
     return values;
   }
 
   Future<int> length() async {
-    final Box<T> box = await _getBox();
+    final box = await _getBox();
     int length = box.length;
     if(isMultiIsolate) await box.close();
     return length;
   }
 
   Iterable<T> getAllSync() {
-    if(isMultiIsolate) throw Exception('Cannot use getAllSync on a multiIsolate box');
-    return _box.values;
+    if(isMultiIsolate) throw UnimplementedError('Cannot use getAllSync on a multiIsolate box');
+    if(lazy) throw UnimplementedError('Cannot use getAllSync on a lazy box');
+    return (_box as Box<T>).values;
   }
 
   Future<bool> exists(String key) async {
-    final Box<T> box = await _getBox();
+    final box = await _getBox();
     bool value = box.containsKey(key);
     if(isMultiIsolate) await box.close();
     return value;
   }
 
   bool existsSync(String key) {
-    if(!isMultiIsolate) throw Exception('Cannot use sync methods on a multiIsolate box');
+    if(!isMultiIsolate) throw UnimplementedError('Cannot use sync methods on a multiIsolate box');
     return _box.containsKey(key);
   }
 
   Future<void> delete(String key) async {
-    final Box<T> box = await _getBox();
+    final box = await _getBox();
     await box.delete(key);
     if(isMultiIsolate) await box.close();
   }
 
   Future<void> clear() async {
-    final Box<T> box = await _getBox();
+    final box = await _getBox();
     await box.clear();
     if(isMultiIsolate) await box.close();
   }
 
   Future<bool> toggle(String key, T value) async {
-    Box<T> box = await _getBox();
+    final box = await _getBox();
     if(box.containsKey(key)) {
       await box.delete(key);
       if(isMultiIsolate) await box.close();
@@ -132,14 +144,14 @@ class HiveMultiIsolateBox<T> {
   }
 
   Future<int> count() async {
-    Box<T> box = await _getBox();
+    final box = await _getBox();
     int value = box.length;
     if(isMultiIsolate) await box.close();
     return value;
   }
 
   Future<List<String>> getKeys() async {
-    Box<T> box = await _getBox();
+    final box = await _getBox();
     List<String> list = [];
     try {
       for(var key in box.keys) {
@@ -151,7 +163,7 @@ class HiveMultiIsolateBox<T> {
   }
 
   Future<void> deleteFromDisk() async {
-    Box<T> box = await _getBox();
+    final box = await _getBox();
 
     // This close the box before deleting it
     await box.deleteFromDisk();

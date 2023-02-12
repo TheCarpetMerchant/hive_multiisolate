@@ -1,7 +1,7 @@
 name: hive_multiisolate
-description: A class allowing the user of Hive across isolates.
+description: A class allowing the user of Hive across isolates. It opens the box, execute the operation and closes it immediately.
 homepage: https://github.com/TheCarpetMerchant/hive_multiisolate
-version: 1.2.0
+version: 1.2.1
 
 environment:
   sdk: '>=2.12.0 <3.0.0'

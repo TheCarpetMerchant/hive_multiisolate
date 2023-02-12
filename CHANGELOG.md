@@ -1,3 +1,8 @@
+## 1.2.1
+- Added _toggleSync_,
+- Remove duplicate function _length_,
+- Adhere to pub.dev guidelines.
+
 ## 1.2.0
 - Lazy boxes can now be used.
 

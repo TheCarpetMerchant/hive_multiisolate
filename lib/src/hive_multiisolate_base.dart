@@ -223,7 +223,7 @@ class HiveMultiIsolateBox<T> {
     await _getBox();
   }
 
-  Future<void> _closeBox(BoxBase<dynamic> box) async {
+  Future<void> _closeBox(BoxBase<T> box) async {
     if (isMultiIsolate) await box.close();
   }
 

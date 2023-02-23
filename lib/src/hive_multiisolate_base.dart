@@ -8,6 +8,8 @@ class HiveMultiIsolateBox<T> {
     this.boxName, {
     this.isMultiIsolate = false,
     this.lazy = false,
+    this.maxTries,
+    this.retryDelay = const Duration(milliseconds: 100),
   });
 
   /// Name of the box. Passed as-is to Hive.openBox();
@@ -18,6 +20,14 @@ class HiveMultiIsolateBox<T> {
 
   /// Whether to use a LazyBox or a regular box.
   final bool lazy;
+
+  /// The number of time we should try to open the box.
+  /// If null, tries will be infinite.
+  final int? maxTries;
+
+  /// The amount of time to wait between each attempt to open the box.
+  final Duration retryDelay;
+
   late BoxBase<T> _box;
   Completer<void>? _initCompleter;
 
@@ -56,7 +66,9 @@ class HiveMultiIsolateBox<T> {
     }
 
     // Try to open the box as many times as it takes, in case it's opened in another Isolate
+    int tries = 0;
     while (true) {
+      tries++;
       try {
         if (lazy) {
           return await Hive.openLazyBox<T>(boxName);
@@ -64,8 +76,13 @@ class HiveMultiIsolateBox<T> {
           return await Hive.openBox<T>(boxName);
         }
       } catch (e) {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        if (maxTries != null) {
+          if (tries >= maxTries!) {
+            throw Exception('Could not open box $boxName :\n$e');
+          }
+        }
       }
+      await Future<void>.delayed(retryDelay);
     }
   }
 
@@ -103,7 +120,7 @@ class HiveMultiIsolateBox<T> {
   Future<T?> get(String key) async {
     final box = await _getBox();
     T? value =
-    lazy ? await (box as LazyBox<T>).get(key) : (box as Box<T>).get(key);
+        lazy ? await (box as LazyBox<T>).get(key) : (box as Box<T>).get(key);
     await _closeBox(box);
     return value;
   }
@@ -223,8 +240,16 @@ class HiveMultiIsolateBox<T> {
     await _getBox();
   }
 
+  /// Since Hive closes the file, then deletes it, another isolate can get the
+  /// lock before we can delete the lock file, raising an exception.
   Future<void> _closeBox(BoxBase<T> box) async {
-    if (isMultiIsolate) await box.close();
+    if (isMultiIsolate) {
+      try {
+        await box.close();
+      } catch (e) {
+        // Nothing
+      }
+    }
   }
 
   void _verifySync() {

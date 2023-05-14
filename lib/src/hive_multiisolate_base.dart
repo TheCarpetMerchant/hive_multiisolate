@@ -211,6 +211,12 @@ class HiveMultiIsolateBox<T> {
     return value;
   }
 
+  /// [count] for a non-multiisolate opened box.
+  int countSync() {
+    _verifySync();
+    return _box.length;
+  }
+
   /// Returns a list of the keys of this box.
   Future<List<String>> getKeys() async {
     final box = await _getBox();
@@ -221,6 +227,16 @@ class HiveMultiIsolateBox<T> {
       }
     } catch (_) {}
     await _closeBox(box);
+    return list;
+  }
+
+  List<String> getKeysSync() {
+    List<String> list = [];
+    try {
+      for (var key in _box.keys) {
+        list.add(key as String);
+      }
+    } catch (_) {}
     return list;
   }
 

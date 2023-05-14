@@ -15,6 +15,16 @@ Future<void> main() async {
   verifyInitHive();
   mainIsolateId = Service.getIsolateID(Isolate.current)!;
 
+  test('Sync operations', () async {
+    verifyInitHive();
+    var aBox = HiveMultiIsolateBox<String>('boxName');
+    await aBox.open();
+    await aBox.put('key', 'value');
+    expect(aBox.countSync(), 1);
+    expect(aBox.getKeysSync().toString(), equals(['key'].toString()));
+    await aBox.deleteFromDisk();
+  });
+
   test('Works', () async {
 
     // Delete the box from the disk to get a fresh test

@@ -1,3 +1,6 @@
+## 1.3.2
+- Added _deleteAll_.
+
 ## 1.3.1
 - Added _countSync_ and _getKeysSync_,
 - Update pubspec to Dart 3 compatibility.

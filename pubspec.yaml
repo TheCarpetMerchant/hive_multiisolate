@@ -1,7 +1,7 @@
 name: hive_multiisolate
 description: A class allowing the use of Hive across isolates. It opens the box, execute the operation and closes it immediately.
 homepage: https://github.com/TheCarpetMerchant/hive_multiisolate
-version: 1.3.1
+version: 1.3.2
 
 environment:
   sdk: '>=2.12.0 <4.0.0'

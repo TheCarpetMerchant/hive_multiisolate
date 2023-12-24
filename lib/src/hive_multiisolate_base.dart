@@ -169,6 +169,12 @@ class HiveMultiIsolateBox<T> {
     await _closeBox(box);
   }
 
+  Future<void> deleteAll(Iterable<dynamic> keys) async {
+    final box = await _getBox();
+    await box.deleteAll(keys);
+    await _closeBox(box);
+  }
+
   /// Box.clear().
   Future<void> clear() async {
     final box = await _getBox();

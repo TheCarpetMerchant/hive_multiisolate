@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive_ce.dart';
 
 /// Use this wrapper class to access a Hive box in a secure way across multiple isolates.
 class HiveMultiIsolateBox<T> {

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:isolate';
 
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive_ce.dart';
 import 'package:hive_multiisolate/hive_multiisolate.dart';
 import 'package:test/test.dart';
 
